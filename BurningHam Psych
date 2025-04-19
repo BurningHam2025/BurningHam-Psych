@@ -1,0 +1,85 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import random
+
+# 1. Define the Initial BurningHam Grid
+def create_burningham_grid(size):
+    """Creates a simple BurningHam grid (for demonstration)."""
+    grid = np.zeros((size, size), dtype=int)
+    for i in range(size):
+        grid[i, random.randint(0, size - 1)] = 1  # Place a '1' in a random column for each row
+    return grid
+
+# 2. Color Conversion Function
+def hsv_to_rgb(h, s, v):
+    """Converts HSV color to RGB (values between 0 and 1)."""
+    if s == 0.0:
+        return [v, v, v]
+    i = int(h * 6.)
+    f = (h * 6.) - i
+    p = v * (1. - s)
+    q = v * (1. - s * f)
+    t = v * (1. - s * (1. - f))
+    i %= 6
+    if i == 0:
+        return [v, t, p]
+    if i == 1:
+        return [q, v, p]
+    if i == 2:
+        return [p, v, t]
+    if i == 3:
+        return [p, q, v]
+    if i == 4:
+        return [t, p, v]
+    if i == 5:
+        return [v, p, q]
+
+# 3. The Core Animation Function
+def psychedelic_burningham(frame):
+    """Applies psychedelic visual effects to the BurningHam grid."""
+    global burningham_grid, ax  # Access the global grid and axes
+    rows, cols = burningham_grid.shape
+    img = np.zeros((rows, cols, 3))  # RGB image array
+
+    hue_offset = frame / 75.0  # Slower hue shift
+    frequency = 0.2  # Increased frequency for more waves
+    amplitude = 0.05  # Reduced amplitude for subtler wobble
+
+    for r in range(rows):
+        for c in range(cols):
+            if burningham_grid[r, c] == 1:
+                # Pulsating size and vibrant shifting hue
+                pulse = 0.8 + 0.2 * np.sin(frame / 15.0) # Pulse between 0.6 and 1.0
+                hue = (r * 0.1 + c * 0.2 + hue_offset) % 1.0
+                saturation = 0.9
+                value = pulse
+                img[r, c, :] = hsv_to_rgb(hue, saturation, value)
+            else:
+                img[r, c, :] = [0.1, 0.1, 0.1]  # Darker background
+
+    # Create a meshgrid for applying the wobble
+    x, y = np.meshgrid(np.arange(cols), np.arange(rows))
+    # Apply sine and cosine waves to create the wobble effect. Make it slower.
+    x_offset = np.sin(x * frequency + frame / 50.0) * amplitude
+    y_offset = np.cos(y * frequency + frame / 50.0) * amplitude
+
+    # Clear the previous plot
+    ax.clear()
+    # Display the image with the wobble effect (using extent for proper mapping)
+    ax.imshow(img, extent=[0 + x_offset.mean(), cols + x_offset.mean(), 0 + y_offset.mean(), rows + y_offset.mean()], origin='upper')
+
+    ax.set_title(f"Psychedelic BurningHam (Frame {frame})")
+    ax.set_xticks(np.arange(cols + 1) - 0.5)
+    ax.set_yticks(np.arange(rows + 1) - 0.5)
+    ax.grid(which="both", color="w", linewidth=0.8) # Stronger grid lines
+    return [ax.imshow(img)]  # Return the image for the animation
+
+# 4. Main Execution
+if __name__ == "__main__":
+    grid_size = 8  # Increased grid size for more visual interest
+    burningham_grid = create_burningham_grid(grid_size)
+
+    fig, ax = plt.subplots()
+    ani = animation.FuncAnimation(fig, psychedelic_burningham, frames=300, interval=40, blit=True)  # More frames, adjusted interval
+    plt.show()
